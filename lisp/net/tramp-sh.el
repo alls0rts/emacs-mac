@@ -644,6 +644,14 @@ we have this shell function.
 Format specifiers are replaced by `tramp-expand-script', percent
 characters need to be doubled.")
 
+(defconst tramp-readlink-file-truename
+  "if %s -h \"$1\"; then echo t; else echo nil; fi
+%s --canonicalize-missing \"$1\""
+  "Shell script to produce output suitable for use with `file-truename'
+on the remote file system.
+Format specifiers are replaced by `tramp-expand-script', percent
+characters need to be doubled.")
+
 (defconst tramp-perl-file-truename
   "%p -e '
 use File::Spec;
@@ -1287,15 +1295,13 @@ Operations not mentioned here will be handled by the normal Emacs functions.")
     (cond
      ;; Use GNU readlink --canonicalize-missing where available.
      ((tramp-get-remote-readlink v)
+      (tramp-maybe-send-script
+       v (format tramp-readlink-file-truename
+		 (tramp-get-test-command v) (tramp-get-remote-readlink v))
+       "tramp_readlink_file_truename")
       (tramp-send-command-and-check
-       v (format
-	  (concat
-	   "(if %s -h \"%s\"; then echo t; else echo nil; fi) && "
-	   "%s --canonicalize-missing %s")
-	  (tramp-get-test-command v)
-	  (tramp-shell-quote-argument localname)
-	  (tramp-get-remote-readlink v)
-	  (tramp-shell-quote-argument localname)))
+       v (format "tramp_readlink_file_truename %s"
+		 (tramp-shell-quote-argument localname)))
       (with-current-buffer (tramp-get-connection-buffer v)
 	(goto-char (point-min))
 	(tramp-set-file-property v localname "file-symlink-marker" (read (current-buffer)))
